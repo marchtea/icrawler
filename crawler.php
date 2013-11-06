@@ -46,21 +46,51 @@ class Crawler
 		//use select to get response
 		//proceed select until all handle response
 		//can refer php.net page, curl_multi_select() api
+		//
+	
+		//do {  
+		//        $mrc = curl_multi_exec($this->mh, $this->active);  
+		//} while ($mrc == CURLM_CALL_MULTI_PERFORM);  
+			
+		echo "active: $this->active\n";
+		//while ($this->active && $mrc == CURLM_OK) {
+		//        //check for results and execute until everything is done
+
+		//    if (curl_multi_select($this->mh) == -1) {
+		//        //if it returns -1, wait a bit, but go forward anyways!
+		//        usleep(100); 
+		//    }
+
+		//    //do something with the return values
+		//    while(($info = curl_multi_info_read($this->mh)) !== false){
+		//        $this->process($info);
+		//        //if ($info["result"] == CURLE_OK){
+		//        //    $content = curl_multi_getcontent($info["handle"]);
+		//        //    do_something($content);
+		//        //}
+		//    }
+		//    do {  
+		//        $mrc = curl_multi_exec($this->mh, $this->active);  
+		//    } while ($mrc == CURLM_CALL_MULTI_PERFORM);          
+		//}
+
+
 		while ($this->active && $mrc == CURLM_OK) 
 		{
-			if (curl_multi_select($this->mh) != -1) 
-			{
-				do {
-					$mrc = curl_multi_exec($this->mh, $this->active);
-					if ($mrc == CURLM_OK)
-					{
-						while($info = curl_multi_info_read($this->mh))
-						{   
-							$this->process($info);
-						}    
-					}
-				} while ($mrc == CURLM_CALL_MULTI_PERFORM);
-			}
+			while (curl_multi_exec($this->mh, $this->active) === CURLM_CALL_MULTI_PERFORM);
+		   if (curl_multi_select($this->mh) != -1) 
+		   {
+			   do {
+				   $mrc = curl_multi_exec($this->mh, $this->active);
+				   if ($mrc == CURLM_OK)
+				   {
+					   while($info = curl_multi_info_read($this->mh))
+					   {   
+						   $this->process($info);
+					   }    
+				   }
+			   } while ($mrc == CURLM_CALL_MULTI_PERFORM);
+		   }
 		}
 		echo "end??\n";
 		//if jobArray still has job objects when select is done,call job's jobDone() 
