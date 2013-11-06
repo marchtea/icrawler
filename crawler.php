@@ -172,6 +172,10 @@ class Crawler
 
 		foreach($job->urlArray as &$url)
 		{
+
+			if ($url->processed) //pass processed job
+				continue;
+
 			$options = array(
 				CURLOPT_AUTOREFERER => $setting['autoref'],
 				CURLOPT_HEADER => false,
@@ -264,9 +268,21 @@ abstract class CrawlJob
 	//         ('referer', 'agent', 'useProxy', 'proxyPort', 'proxyIp')
 	public function __construct($url, $setting = array())
 	{
+		$this->urlArray = array();
+		$this->processUrl($url);
+
+		$setting = DefaultCrawlSetting::completeSetting($setting);
+		$this->setting = $setting;
+		$this->urlGetCount = 0;
+
+		$this->results = array();
+	}
+
+	private function processUrl($url)
+	{
 		if ($url instanceof Url)
 		{ 
-			$this->urlArray = array($url);
+			$this->urlArray[] = $url;
 		}
 
 		if (is_array($url))
@@ -278,10 +294,8 @@ abstract class CrawlJob
 				{
 					$obj->$key = $val;
 				}	
-				$this->urlArray = array($obj);
+				$this->urlArray[] = $obj;
 			}else{
-
-				$this->urlArray = array();
 				foreach($url as $u)
 				{
 					if ($u instanceof Url)
@@ -296,15 +310,8 @@ abstract class CrawlJob
 						$this->urlArray[] = $obj;
 					}
 				}
-
 			}
 		}
-
-		$setting = DefaultCrawlSetting::completeSetting($setting);
-		$this->setting = $setting;
-		$this->urlGetCount = 0;
-
-		$this->results = array();
 	}
 
 	//when a url is completed, crawler will call urlDone()
@@ -331,6 +338,15 @@ abstract class CrawlJob
 		}
 		return false;
 	}
+
+	//add sub work to urlArray
+	//if setting == null, then use current crawl setting
+	protected function addSubWork($crawler, $url, $setting = null)
+	{
+		$this->processUrl($url);	
+		$crawler->addJobs($this);
+	}
+
 	public function getSetting()
 	{
 		return $this->setting;
@@ -397,12 +413,14 @@ class Url
 	//ref: php curl_setopt CURLOPT_POSTFIELDS options
 	public $data;
 	public $hd;//curl handler
+	public $processed;
 	public function __construct($url, $method = 'GET', $data = null)
 	{
 		$this->url = $url;
 		$this->method = $method;
 		$this->data = $data;
 		$this->hd = null;
+		$this->processed = false;
 	}
 }
 ?>
