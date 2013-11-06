@@ -42,6 +42,7 @@ class Crawler
 		$this->has_start = true;
 		$mrc = $this->multiExec();
 
+		echo "start get url content\n";
 		//use select to get response
 		//proceed select until all handle response
 		//can refer php.net page, curl_multi_select() api
@@ -61,6 +62,7 @@ class Crawler
 				} while ($mrc == CURLM_CALL_MULTI_PERFORM);
 			}
 		}
+		echo "end??\n";
 		//if jobArray still has job objects when select is done,call job's jobDone() 
 		foreach($this->jobs as $job)
 		{
@@ -97,12 +99,13 @@ class Crawler
 	//if all urls of a job are completed, remove the job
 	public function process($info)
 	{
+		echo "in process\n";
 		$cjob = null;
 		$jobkey = -1;
 		$urlNum = -1;
 		foreach($this->jobs as $key => &$job)
 		{
-			foreach($job->urlArray as $num => $url)
+			foreach($job->urlArray as $num => &$url)
 			{
 				//var_dump($info);
 				//var_dump($url);
@@ -111,6 +114,7 @@ class Crawler
 					$cjob = &$job;
 					$jobkey = $key;
 					$urlNum = $num;
+					$url->processed = true;
 					break 2;
 				}
 			}
@@ -128,6 +132,7 @@ class Crawler
 			$cjob->onError();
 			return false;
 		}
+			
 		if ($cjob->urlDone($urlNum, $this))
 		{
 			unset($this->jobs[$jobkey]);
@@ -214,11 +219,13 @@ class Crawler
 				continue;
 			}
 
+			echo "in crawler: $url->url \n";
 			$hd = curl_init();
 			curl_setopt_array($hd, $options);
 			curl_multi_add_handle($this->mh,$hd);
 			$url->hd = $hd;
 		}
+		var_dump($job);
 	}
 
 	//jobs: CrawlJob object or array contain CrawlJob objects
@@ -290,20 +297,20 @@ abstract class CrawlJob
 			if (array_key_exists('url', $url))
 			{
 				$obj = new Url($url['url']);
-				foreach($url as $key => $val)
+				foreach($url as $key => &$val)
 				{
 					$obj->$key = $val;
 				}	
 				$this->urlArray[] = $obj;
 			}else{
-				foreach($url as $u)
+				foreach($url as &$u)
 				{
 					if ($u instanceof Url)
 						$this->urlArray[] = $u;
 					else if (is_array($u) && array_key_exists('url', $u))
 					{
 						$obj = new Url($u['url']);
-						foreach($u as $key => $val)
+						foreach($u as $key => &$val)
 						{
 							$obj->$key = $val;
 						}	
