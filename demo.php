@@ -307,7 +307,7 @@ class GeneralCrawler extends CrawlJob
 
 date_default_timezone_set('Asia/Shanghai');
 
-$rulestr = '{"url":"http://software.hit.edu.cn/article/list.aspx", "title":"软件学院通知","description": "test",  "items":[{"dom": "div.grid_12 p", "operation": "property.innertext"},{"dom":"ul.page_news_list li a", "autoRefer":"true", "operation":"property.href", "rule":{"items":[{"dom": "h3.page_news_title", "operation":"property.innertext", "as": "title"},{"dom": "i.page_news_date", "operation": "property.innertext", "as": "description"}]}}]}';
+$rulestr = '{"url":"http://software.hit.edu.cn/article/list.aspx", "title":"软件学院通知","description": "test",  "items":[{"dom": "div.grid_12 p", "operation": "property.innertext"},{"dom":"ul.page_news_list li a", "autoRefer":"true", "operation":"property.href", "rule":{"items":[{"dom": "h3.page_news_title", "operation":"property.innertext", "as": "title"},{"dom": "div.page_content", "operation": "property.innertext", "as": "description"}, {"dom": "div.page_content", "operation": "property.innertext", "as": "content_encode"}]}}]}';
 
 $rule = json_decode($rulestr, true);
 var_dump($rule);
