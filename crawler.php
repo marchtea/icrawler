@@ -52,7 +52,6 @@ class Crawler
 		//        $mrc = curl_multi_exec($this->mh, $this->active);  
 		//} while ($mrc == CURLM_CALL_MULTI_PERFORM);  
 			
-		echo "active: $this->active\n";
 		//while ($this->active && $mrc == CURLM_OK) {
 		//        //check for results and execute until everything is done
 
@@ -92,7 +91,6 @@ class Crawler
 			   } while ($mrc == CURLM_CALL_MULTI_PERFORM);
 		   }
 		}
-		echo "end??\n";
 		//if jobArray still has job objects when select is done,call job's jobDone() 
 		foreach($this->jobs as $job)
 		{
@@ -246,6 +244,8 @@ class Crawler
 			}else{
 				$job->setError(array(CRAWL_URL_ERROR=> $url));
 				$job->onError();
+				$url->processed = true;
+				unset($url);
 				continue;
 			}
 
@@ -255,7 +255,6 @@ class Crawler
 			curl_multi_add_handle($this->mh,$hd);
 			$url->hd = $hd;
 		}
-		var_dump($job);
 	}
 
 	//jobs: CrawlJob object or array contain CrawlJob objects

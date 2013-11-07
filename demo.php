@@ -12,12 +12,29 @@ class GeneralCrawler extends CrawlJob
 
 	private function processRule($rule)
 	{
-		$url = new Url($rule['url']);
-		print "url: ".$rule['url'];
+		$url = $rule['url'];
+		if (is_array($url))
+		{
+			$url = new Url($url[count($url)-1]);
+		}else{
+			$url = new Url($rule['url']);
+		}
 		$url->rule = $rule;
 		return $url;
 	}
 
+
+	private function getHost($url)
+	{
+		$tmp = null;
+
+		$index = stripos($url, '/', 7);
+		if ($index === false)
+			return $url;
+		else{
+			return substr($url, 0, $index);
+		}
+	}
 	//rule['result']:
 	//				0: normal return
 	//				1: redir
@@ -35,23 +52,46 @@ class GeneralCrawler extends CrawlJob
 			$items = $rule['items'];
 			foreach($items as &$item)
 			{
+				$opstr = $item['operation'];
+				$ops = preg_split('/\./', $opstr); 
+
 				$doms = $html->find($item['dom']);
-				foreach($doms as $dom)
+				print "dom: {$item['dom']} ".count($doms)."\n";
+				if (strcmp($ops[0], 'property') == 0)//get property
 				{
-					$opstr = $item['operation'];
-					$ops = preg_split('/\./', $opstr); 
-					if (strcmp($ops[0], 'property') == 0)//get property
+					print "property: $ops[1]\n";
+					if (array_key_exists('autoRefer', $item) && (strcmp($item['autoRefer'], 'true') == 0 || $item['autoRefer'] == true))
 					{
-						if (property_exists($dom, $ops[1]))//get some property
+						$suburls = array();
+						foreach($doms as $dom)
 						{
-							$property = $dom->$ops[1];
-							if (strcmp($item['autoRefer']. 'true') == 0 || $item['autoRefer'] == true)
+							if (isset($dom->$ops[1]))//get some property
 							{
-								$item['rule']['url'] = $property;
-								$url = $this->processRule($item['rule']);
-								$this->addSubWork($crawler, $url);
-							}else{
-								if (array_key_exists($item, 'value')){
+								$property = $dom->$ops[1];
+								if (preg_match('/^\//', $property))
+								{
+									$property = $this->getHost($urlobj->url).$property;
+									echo "property: $property\n";
+								}
+
+								if (array_key_exists('rule', $item['rule']))
+									$item['rule']['url'][] = $property;
+								else{
+									$item['rule']['url'] = array($property);
+								}
+									
+								$suburls[] = $this->processRule($item['rule']);
+								print "sub url $property\n";
+							}
+						}
+						$this->addSubWork($crawler, $suburls);
+					}else{
+						foreach($doms as $dom)
+						{
+							if (isset($dom->$ops[1]))//get some property
+							{
+								$property = $dom->$ops[1];
+								if (array_key_exists('value', $item)){
 									$item['value'][] = $property;
 								}else{
 									$item['value'] = array($property);
@@ -81,7 +121,7 @@ class GeneralCrawler extends CrawlJob
 	}
 	public function jobDone($crawler)
 	{
-		echo "all job done\n";
+		echo " ?? all job done\n";
 
 		/*
 		//because of simplexml not supporting <xxx:xxx> tag, preprocess first
@@ -121,7 +161,7 @@ class GeneralCrawler extends CrawlJob
 		}
 		$crawler->addJobs($newjobs);
 		 */
-		echo "add done\n";
+		//echo "add done\n";
 	}
 	public static function listCmp($a, $b)
 	{
