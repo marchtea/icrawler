@@ -237,11 +237,25 @@ class GeneralCrawler extends CrawlJob
 					$newnode->addChild('link', $url);
 					$newnode->addChild('guid', $url);
 
-					foreach($ru['items'] as $it)
+					switch($ru['result'][$num])
 					{
-						$title = $newnode->addChild($it['as']);
-						$title->addCData($it['value'][$num]);
+					case 0:
+						foreach($ru['items'] as $it)
+						{
+							$title = $newnode->addChild($it['as']);
+							$title->addCData($it['value'][$num]);
+						}
+						break;
+					case 1:
+						$title = $newnode->addChild('title');
+						$title->addCData('redir');
+						$newnode->addChild('description', "refer to: ".$ru["value"][$num]);
+						break;
+					default:
+						break;
 					}
+
+	
 				}
 			}else if (array_key_exists('value', $item))//has value
 			{
