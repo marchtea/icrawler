@@ -46,8 +46,10 @@ class GeneralCrawler extends CrawlJob
 		$code = curl_getinfo($urlobj->hd, CURLINFO_HTTP_CODE)."\n";
 
 		$rule = &$urlobj->rule;		
-		$urlobj->rule['value'] = array();
-		$urlobj->rule['result'] = array();
+		if (!array_key_exists('value', $urlobj->rule))
+			$urlobj->rule['value'] = array();
+		if (!array_key_exists('result', $urlobj->rule))
+			$urlobj->rule['result'] = array();
 		
 		$num = 0;
 		if (is_array($rule['url'])){
