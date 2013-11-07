@@ -10,7 +10,7 @@ class GeneralCrawler extends CrawlJob
 		parent::__construct($url, $setting);
 	}
 
-	private function processRule($rule)
+	private function processRule(&$rule)
 	{
 		$url = $rule['url'];
 		if (is_array($url))
@@ -46,11 +46,26 @@ class GeneralCrawler extends CrawlJob
 		$code = curl_getinfo($urlobj->hd, CURLINFO_HTTP_CODE)."\n";
 
 		$rule = &$urlobj->rule;		
+		$urlobj->rule['value'] = array();
+		$urlobj->rule['result'] = array();
+		
+		$num = 0;
+		if (is_array($rule['url'])){
+			foreach($rule['url'] as $n => $url){
+				if (strcmp($url, $urlobj->url) == 0)
+				{
+					$num = $n;
+					break;
+				}
+			}
+		}
+		//var_dump($rule);
+		echo "num: $num $urlobj->url \n";
 		switch(intval($code))
 		{
 		case 200:
-			$items = $rule['items'];
-			foreach($items as &$item)
+			//$items = &$urlobj->rule['items'];
+			foreach($urlobj->rule['items'] as &$item)
 			{
 				$opstr = $item['operation'];
 				$ops = preg_split('/\./', $opstr); 
@@ -71,17 +86,17 @@ class GeneralCrawler extends CrawlJob
 								if (preg_match('/^\//', $property))
 								{
 									$property = $this->getHost($urlobj->url).$property;
-									echo "property: $property\n";
 								}
 
-								if (array_key_exists('rule', $item['rule']))
+								if (array_key_exists('url', $item['rule']))
 									$item['rule']['url'][] = $property;
 								else{
 									$item['rule']['url'] = array($property);
 								}
 									
-								$suburls[] = $this->processRule($item['rule']);
-								print "sub url $property\n";
+								$url = new Url($item['rule']['url'][count($item['rule']['url'])-1]);
+								$url->rule = &$item['rule'];
+								$suburls[] = $url;
 							}
 						}
 						$this->addSubWork($crawler, $suburls);
@@ -91,29 +106,25 @@ class GeneralCrawler extends CrawlJob
 							if (isset($dom->$ops[1]))//get some property
 							{
 								$property = $dom->$ops[1];
-								if (array_key_exists('value', $item)){
-									$item['value'][] = $property;
-								}else{
-									$item['value'] = array($property);
-								}
+								$item['value'][$num] = $property;
 							}
 						}
 					}
 				}
 			}
-			$rule['result'] = 0;
+			$urlobj->rule['result'][$num] = 0;
 			break;
 		case 302: //object removed
 			$redir = $html->find('h2 a', 0);
-			$rule['result'] = 1;
-			$rule['value'] = $redir->href;
+			$urlobj->rule['result'][$num] = 1;
+			$urlobj->rule['value'][$num] = $redir->href;
 			break;
 		case 404:
-			$rule['result'] = 2;
+			$urlobj->rule['result'][$num] = 2;
 			break;
 		default:
-			$rule['result'] = 3;
-			$rule['value'] = $code;
+			$urlobj->rule['result'] = 3;
+			$urlobj->rule['value'] = $code;
 		}
 
 		$items = array();
@@ -122,6 +133,7 @@ class GeneralCrawler extends CrawlJob
 	public function jobDone($crawler)
 	{
 		echo " ?? all job done\n";
+		var_dump($this->urlArray);
 
 		/*
 		//because of simplexml not supporting <xxx:xxx> tag, preprocess first
@@ -180,7 +192,7 @@ class GeneralCrawler extends CrawlJob
 
 date_default_timezone_set('Asia/Shanghai');
 
-$rulestr = '{"url":"http://software.hit.edu.cn/article/list.aspx", "title":"软件学院通知", "items":[{"dom":"ul.page_news_list li a", "autoRefer":"true", "operation":"property.href", "rule":{"items":[{"dom": "div.page_content", "operation":"property.innertext"}]}}]}';
+$rulestr = '{"url":"http://software.hit.edu.cn/article/list.aspx", "title":"软件学院通知", "items":[{"dom":"ul.page_news_list li a", "autoRefer":"true", "operation":"property.href", "rule":{"items":[{"dom": "h3.page_news_title", "operation":"property.innertext"}]}}]}';
 
 $rule = json_decode($rulestr, true);
 var_dump($rule);

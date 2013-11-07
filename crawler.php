@@ -171,7 +171,6 @@ class Crawler
 	//jobs: object or array contain objects
 	public function addJobs($jobs)
 	{
-
 		if ($this->has_start)
 		{
 			if ($jobs instanceof CrawlJob)
@@ -194,7 +193,29 @@ class Crawler
 				$this->jobs = array_merge($this->jobs, $jobs);
 			}
 		}
+	}
 
+	public function editJob($job)
+	{
+		$flag = false;
+		foreach($this->jobs as $j)
+		{
+			if ($j === $job)
+			{
+				$flag = true;
+				print "found...\n";
+				break;
+			}
+		}
+		if (!$flag)
+			return false;
+		if ($this->has_start)
+		{
+			$this->processJob($job);
+			$this->multiExec();
+		}else{
+			//do nothing
+		}
 	}
 
 	//after a job is added, process the job, get setting, init handler and set into multi_handler
@@ -380,7 +401,7 @@ abstract class CrawlJob
 	protected function addSubWork($crawler, $url, $setting = null)
 	{
 		$this->processUrl($url);	
-		$crawler->addJobs($this);
+		$crawler->editJob($this);
 	}
 
 	public function getSetting()
