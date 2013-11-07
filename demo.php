@@ -266,14 +266,13 @@ class GeneralCrawler extends CrawlJob
 					$title->addCData($item['dom']);
 					//$newnode->title = '<![CDATA[ '.$result['title'].' ]]>';
 					//$newnode->addChild(new SimpleXMLElement('<item><title></title></item>'));
-					$newnode->addChild('link', $item['url']);
-					$newnode->addChild('guid', $item['url']);
+					$newnode->addChild('link', $rule['url']);
+					$newnode->addChild('guid', $rule['url']);
 
 					$descnote = $newnode->addChild('description');
 					$descnote->addCData($value);
 					$content = $newnode->addChild('content_encoded');
 					$content->addCData($value);
-					$newnode->addChild('dc_creator', $result['admin']);
 				}
 
 			}
