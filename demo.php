@@ -287,8 +287,6 @@ class GeneralCrawler extends CrawlJob
 		file_put_contents($this->rssfilename, $xmlstr);
 		echo "file: $this->rssfilename saved\n";	
 
-
-
 	}
 	public static function listCmp($a, $b)
 	{
@@ -307,13 +305,73 @@ class GeneralCrawler extends CrawlJob
 
 date_default_timezone_set('Asia/Shanghai');
 
-$rulestr = '{"url":"http://software.hit.edu.cn/article/list.aspx", "title":"软件学院通知","description": "test",  "items":[{"dom": "div.grid_12 p", "operation": "property.innertext"},{"dom":"ul.page_news_list li a", "autoRefer":"true", "operation":"property.href", "rule":{"items":[{"dom": "h3.page_news_title", "operation":"property.innertext", "as": "title"},{"dom": "div.page_content", "operation": "property.innertext", "as": "description"}, {"dom": "div.page_content", "operation": "property.innertext", "as": "content_encode"}]}}]}';
+echo "start crawling...\n";
 
-$rule = json_decode($rulestr, true);
-var_dump($rule);
-$soft = new GeneralCrawler($rule);
-
+echo "get memcached server\n";
+$memc =new Memcache; 
+$s = $memc->connect("127.0.0.1");
+if (!$s)
+{
+	print "get memcached server error\n";
+	die();
+}
 
 $crawler = new Crawler;
-$crawler->start($soft);
+while(1)
+{
+	$jobs = $memc->get('jobs');
+	if ($jobs === false || count($jobs) == 0)
+	{
+		sleep(1);
+		continue;
+	}
+	print "get job: ".count($jobs)."\n";
+	$cj = array();
+	foreach($jobs as $job)
+	{
+		$obj = $memc->get($job['jobname']);
+		if ($obj['status'] != 0)
+			continue;
+		$obj['status'] = 1;
+		$memc->set($job['jobname'], $obj);
+		$rule = $job['rule'];
+		//$rulestr = '{"url":"http://software.hit.edu.cn/article/list.aspx", "title":"软件学院通知","description": "test",  "items":[{"dom": "div.grid_12 p", "operation": "property.innertext"},{"dom":"ul.page_news_list li a", "autoRefer":"true", "operation":"property.href", "rule":{"items":[{"dom": "h3.page_news_title", "operation":"property.innertext", "as": "title"},{"dom": "div.page_content", "operation": "property.innertext", "as": "description"}, {"dom": "div.page_content", "operation": "property.innertext", "as": "content_encode"}]}}]}';
+
+		$rule = json_decode($rule, true);
+		$rule['jobname'] = $job['jobname'];
+		var_dump($rule);
+		$j = new GeneralCrawler($rule, $job['jobname'].".rss");
+		$cj[] = $j;
+	}
+	if (count($cj))
+	{
+		$crawler->start($cj);
+		foreach($jobs as $job)
+		{
+			$obj = $memc->get($job['jobname']);
+			if ($obj['status'] != 0)
+				continue;
+			$obj['status'] = 2;
+			$memc->set($job['jobname'], $obj);
+		}
+		$njobs = $memc->get('jobs');
+		$njobs = array_slice($njobs, count($jobs));
+		$memc->replace('jobs', $njobs);
+	}
+	//$memc->delete('jobs');
+}
+
+echo "done...\n";
+
+
+
+//$rulestr = '{"url":"http://software.hit.edu.cn/article/list.aspx", "title":"软件学院通知","description": "test",  "items":[{"dom": "div.grid_12 p", "operation": "property.innertext"},{"dom":"ul.page_news_list li a", "autoRefer":"true", "operation":"property.href", "rule":{"items":[{"dom": "h3.page_news_title", "operation":"property.innertext", "as": "title"},{"dom": "div.page_content", "operation": "property.innertext", "as": "description"}, {"dom": "div.page_content", "operation": "property.innertext", "as": "content_encode"}]}}]}';
+
+//$rule = json_decode($rulestr, true);
+//var_dump($rule);
+//$soft = new GeneralCrawler($rule);
+
+
+//$crawler = new Crawler;
+//$crawler->start($soft);
 ?>
